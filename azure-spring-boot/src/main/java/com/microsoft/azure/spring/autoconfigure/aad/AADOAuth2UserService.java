@@ -20,7 +20,6 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.util.StringUtils;
 
 import javax.naming.ServiceUnavailableException;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -68,8 +67,6 @@ public class AADOAuth2UserService implements OAuth2UserService<OidcUserRequest, 
             throw wrapException(INVALID_REQUEST, "Failed to acquire token for Graph API.", null, e);
         } catch (ServiceUnavailableException | InterruptedException | ExecutionException e) {
             throw wrapException(SERVER_ERROR, "Failed to acquire token for Graph API.", null, e);
-        } catch (IOException e) {
-            throw wrapException(SERVER_ERROR, "Failed to map group to authorities.", null, e);
         }
 
         // Create a copy of oidcUser but use the mappedAuthorities instead

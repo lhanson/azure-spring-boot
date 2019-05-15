@@ -120,9 +120,15 @@ public class AzureADGraphClient {
                 .equals(aadAuthenticationProperties.getUserGroup().getValue());
     }
 
-    public Set<GrantedAuthority> getGrantedAuthorities(String graphApiToken) throws IOException {
+    public Set<GrantedAuthority> getGrantedAuthorities(String graphApiToken) {
         // Fetch the authority information from the protected resource using accessToken
-        final List<UserGroup> groups = getGroups(graphApiToken);
+        List<UserGroup> groups;
+        try {
+            groups = getGroups(graphApiToken);
+        } catch (IOException e) {
+            // It may be the case that the app does not have access to the memberOf resource
+            groups = new ArrayList<>();
+        }
 
         // Map the authority information to one or more GrantedAuthority's and add it to mappedAuthorities
         return convertGroupsToGrantedAuthorities(groups);

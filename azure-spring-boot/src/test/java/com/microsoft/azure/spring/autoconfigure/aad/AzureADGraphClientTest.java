@@ -10,12 +10,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.io.IOException;
 import java.util.*;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Java6Assertions.fail;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AzureADGraphClientTest {
@@ -31,7 +35,7 @@ public class AzureADGraphClientTest {
     private ServiceEndpointsProperties endpointsProps;
     
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         final List<String> activeDirectoryGroups = new ArrayList<>();
         activeDirectoryGroups.add("Test_Group");
         aadAuthProps = new AADAuthenticationProperties();
@@ -59,5 +63,20 @@ public class AzureADGraphClientTest {
         final Set<GrantedAuthority> authorities = adGraphClient.convertGroupsToGrantedAuthorities(userGroups);
         assertThat(authorities).hasSize(2).extracting(GrantedAuthority::getAuthority)
                 .containsExactly("ROLE_Test_Group", "ROLE_Another_Group");
+    }
+
+    @Test
+    public void testGetGrantedAuthoritiesWith403() {
+        Set<GrantedAuthority> grantedAuthorities = null;
+        final AzureADGraphClient adGraphClientSpy = Mockito.spy(adGraphClient);
+        try {
+            Mockito.doThrow(new IOException("Connection returned 403"))
+                    .when(adGraphClientSpy).getGroups("graphApiToken");
+            grantedAuthorities = adGraphClientSpy.getGrantedAuthorities("graphApiToken");
+        } catch (IOException e) {
+            fail("IOException should not be propagated when the aadMembershipRestUri returns a 403");
+        }
+        assertThat(grantedAuthorities).size().isEqualTo(1);
+        assertThat(grantedAuthorities).contains(new SimpleGrantedAuthority("ROLE_USER"));
     }
 }
